@@ -62,7 +62,7 @@ module.exports = (command, data = [], opts = {}) => {
 			if (resolvedData.length === 0) {
 				args.send(options.noItemsMessage ? args.localize(options.noItemsMessage, expandedArgs) : args.localize("no_pagination_items", dataType));
 			} else if (args.page <= list.length && args.page > 0) {
-				if (Number.isSafeInteger(args.page)) {
+				if (Number.isInteger(args.page)) {
 					const pageOfText = properChunk ? " " + args.localize("page_counter", args.page, list.length) : "";
 					const endText = options.footer ? "\n\n" + (args.localize(options.footer, expandedArgs) || options.footer) : "";
 

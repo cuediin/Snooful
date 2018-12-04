@@ -178,7 +178,7 @@
         "string_argument_too_long": "The {2} provided for the '{key}' argument is too long; the maximum length allowed is {maxLength} characters long.",
         "string_argument_too_short": "The {2} provided for the '{key}' argument is too short; the minimum length allowed is {minLength} characters long.",
         "subreddit_argument_too_long": "The {2} provided for the '{key}' is too long; subreddits can only have up to 20 characters in their name.",
-        "subreddit_argument_too_short": "The {2} provided for the '{key}' is too long; subreddits must have at least 3 characters in their name.",
+        "subreddit_argument_too_short": "The {2} provided for the '{key}' is too short; subreddits must have at least 3 characters in their name.",
         "support_channel_missing": "Sorry, I couldn't find the channel I wanted to invite you to!",
         "support_invite_error": "Sorry, something went wrong with the invitation!",
         "support_invited": [
@@ -199,7 +199,7 @@
         ],
         "urban_dictionary_unspecified_word": "undefined: A subtle hint that you need to tell me which word to define.",
         "user_argument_too_long": "The {2} provided for the '{key}' is too long; usernames can only be up to 20 characters long.",
-        "user_argument_too_short": "The {2} provided for the '{key}' is too long; usernames must be at least 3 characters long.",
+        "user_argument_too_short": "The {2} provided for the '{key}' is too short; usernames must be at least 3 characters long.",
         "version": "I am running version {}! 😄",
         "version_hash": "I am running version {}, with the most recent commit being {}!",
         "whereami": [
@@ -212,7 +212,15 @@
             "You need a nametag, u/{}...",
             "Do you need to write 'u/{}' on your hand so you can remember?"
         ],
-        "wikipedia_article_not_found": "That Wikipedia article could not be found."
+        "wikipedia_article_not_found": "That Wikipedia article could not be found.",
+        "update_notauth_message_no_change": "That is already the not authorised message.",
+        "update_notauth_message": "The not authorised message has been updated.",
+        "clear_notauth_message_no_change": "The not authorised message is already blank.",    
+        "clear_notauth_message": "The not authorised message is blank.",
+        "setmodonly_no_change": "no changes made.",
+        "setmodonly_update": "moderator only commands option updates to",
+        "bot_welcome": "Welcome to using this bot. Please review the ?whatsnew commands to see about moderating with this bot and limiting access. Firstly, do ?updatemods then ?setmodonly true then assigned additional allowed comamnds using ?allowed_bot_commands add <CMD>"
+
     },
     "es-ES": {
         "argument_required": "Es necesario proporcionar un {2} para el argumento '{key}'.",
