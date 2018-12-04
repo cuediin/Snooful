@@ -12,7 +12,10 @@ module.exports = {
 		whats_new += "New command: displayrules, this displays the rules for the Subreddit.\n";
 		whats_new += "New command: allowed_bot_commands add/remove/clear/list/default, this allows you to add specific commands that non moderators are allowed to run\n"
 		whats_new += "New command: whatsnew, this allows you to see what is new\n"
+		whats_new += "New command: modreport, sets the not authorised message\n"
 		whats_new += "New command: setnotauthorised, sets the not authorised message\n"
+		whats_new += "New feature: user activity in your chatrooms\n"
+		whats_new += "New command: userreport, gives the statistics on a user\n"
 		args.send(whats_new)
 	},
 	longDescription: "Displays what is new with the bot.",

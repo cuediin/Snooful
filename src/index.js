@@ -16,6 +16,7 @@ const { SettingsManager, extension } = require(config.settingsManager);
 log.settings("passing off settings handling to the '%s' module", config.settingsManager);
 
 const settings = new SettingsManager(path.resolve("./settings" + extension));
+const user_stats = new SettingsManager(path.resolve("./user_stats" + extension));
 //settings.set("test","test1","test2")
 const locales = require("./locales.json");
 const format = require("string-format");
@@ -118,14 +119,6 @@ function cue_sendmessage(channel,message) {
 	 });
 }
 
-function is_valid_command(this_command) {
-	var is_valid_command = "true";
-	this_regexp = "^\\"+prefix+"[a-z]*"
-	if (this_command.match(new RegExp(this_regexp)) == null) {
-		is_valid_command="false";
-	  }
-	return is_valid_command;
-  }
 
 	/**
 	 * Runs a command.
@@ -193,6 +186,33 @@ function 	cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper) {
 		}
 	}
 
+function update_user_stats(this_user,this_sub,command) {
+	user_report_this_user = this_user.toLowerCase();
+	const settingsWrapper = settings.subredditWrapper(this_sub);
+	const msgs = settingsWrapper.get("user_stats") || {};
+	if (msgs[user_report_this_user+":no_messages"] == undefined) {
+		msgs[user_report_this_user+":no_messages"] = 0;
+		msgs[user_report_this_user+":no_empty_messages"] = 0;
+		msgs[user_report_this_user+":no_total_characters"] = 0;
+	}
+	if (command.length>0) {
+		msgs[user_report_this_user+":no_messages"]++;
+	  }
+	else {
+		msgs[user_report_this_user+":no_empty_messages"]++;
+		}
+	msgs[user_report_this_user+":no_total_characters"] += command.length;
+	settingsWrapper.set("user_stats", msgs);
+  }
+
+function is_valid_command(this_command) {
+		var is_valid_command = "true";
+		this_regexp = "^\\"+prefix+"[a-z]+"
+		if (this_command.match(new RegExp(this_regexp)) == null) {
+			is_valid_command="false";
+		  }
+		return is_valid_command;
+	  }
 
 function handleCommand(command = "", channel = {}, message = {}) {
 	this_sub = channelSub(channel);
@@ -208,24 +228,29 @@ function handleCommand(command = "", channel = {}, message = {}) {
 		settingsWrapper.set("allowed_bot_commands","::");
 	  }
 	this_allowed_bot_commands = settingsWrapper.get("allowed_bot_commands")
-	if ( (is_valid_command(command) == "true") && message._sender.nickname !== client.nickname) {
-		const unprefixedCmd = command.replace(prefix, "");
-		if ((settingsWrapper.get("mod_only") == "false") || (settingsWrapper.get("moderators").includes("::"+this_user.toLowerCase()+"::")) || (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ) {
-			if (settingsWrapper.get("channel_logs") !== undefined) {
-				this_channel_url = settingsWrapper.get("channel_logs")
-		   pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
-			   cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
-			 });
-		 }
-		log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
-		cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
-	}
+	if (message._sender.nickname !== client.nickname) {
+	  if (is_valid_command(command) == "true") {
+	  	const unprefixedCmd = command.replace(prefix, "");
+	  	if ((settingsWrapper.get("mod_only") == "false") || (settingsWrapper.get("moderators").includes("::"+this_user.toLowerCase()+"::")) || (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ) {
+		  	if (settingsWrapper.get("channel_logs") !== undefined) {
+			  	this_channel_url = settingsWrapper.get("channel_logs")
+		      pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
+			     cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
+			     });
+		      }
+		    log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
+		    cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
+	      }
+	    else {
+	      allowed_commands = settingsWrapper.get("allowed_bot_commands").replace("::","").replace(/::/g,", ").replace(/, $/g,"\n");
+	      this_message = "" + settingsWrapper.get("notauth_message").replace("{User}",this_user).replace("{allowed_commands}",allowed_commands)
+	      cue_sendmessage(channel,this_message)
+        }
+      }
 	else {
-	 allowed_commands = settingsWrapper.get("allowed_bot_commands").replace(/::/g,", ").replace(/, $/g,"\n");
-	 this_message = "" + settingsWrapper.get("notauth_message").replace("{User}",this_user).replace("{allowed_commands}",allowed_commands)
-	 cue_sendmessage(channel,this_message)
-  }
- }
+		update_user_stats(this_user,this_sub,command);
+		}
+	}
 }
 
 const Sendbird = require("sendbird");
@@ -334,7 +359,7 @@ handler.onUserJoined = (channel, user) => {
 
 	const sub = channelSub(channel);
 	if (settings.get(sub, "join_message") !== undefined) {
-		pify(channel.sendUserMessage.bind(channel), settings.get(sub, "join_message").replace(/{USER}/g, user.nickname)).then(() => {
+		pify(channel.sendUserMessage.bind(channel), settings.get(sub, "join_message").replace(/{USER}/g, user.nickname).replace(/\\n/g, "\n")).then(() => {
 			log.gateway("sent join message");
 		}).catch(() => {
 			log.gateway("failed to send join message");
