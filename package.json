@@ -1,7 +1,9 @@
 {
 	"name": "snooful",
 	"dependencies": {
+		"@snooful/json-settings": "^1.0.2",
 		"@snooful/orangered-parser": "^3.1.0",
+		"@snooful/sqlite-settings": "^1.0.2",
 		"alternating-case": "^1.0.0",
 		"chance": "^1.0.16",
 		"clear-require": "^2.0.0",

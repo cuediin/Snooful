@@ -1,7 +1,6 @@
 const config = {
 	credentials: {},
-	prefix: "!",
-	settingsManager: "",
+	settingsManager: "@snooful/json-settings",
 	...require("./../config.json"),
 };
 
@@ -13,14 +12,11 @@ const version = require("./../package.json").version;
 
 const path = require("path");
 
-// Set up in a way where legacy settings managers work too
-const setMan = require(config.settingsManager);
-const SettingsManager = setMan.SettingsManager || setMan;
-const extension = setMan.extension || "";
-
+const { SettingsManager, extension } = require(config.settingsManager);
 log.settings("passing off settings handling to the '%s' module", config.settingsManager);
-const settings = new SettingsManager(path.resolve("./settings" + extension));
 
+const settings = new SettingsManager(path.resolve("./settings" + extension));
+//settings.set("test","test1","test2")
 const locales = require("./locales.json");
 const format = require("string-format");
 const upsidedown = require("upsidedown");
@@ -41,11 +37,22 @@ function chanceFormats(msg) {
 		return msg.toString();
 	}
 }
-
+/**
+ * Gets the subreddit from a channel.
+ * @param {*} channel The channel to get the subreddit from.
+*/
+function channelSub(channel) {
+	if (channel.data) {
+		const data = JSON.parse(channel.data);
+		return data.subreddit ? data.subreddit.name : channel.url;
+	} else {
+		return channel.url;
+	}
+}
 /**
  * The prefix required by commands to be considered by the bot.
  */
-const prefix = config.prefix || "!";
+const prefix = config.prefix;
 
 const parser = require("@snooful/orangered-parser");
 const creq = require("clear-require");
@@ -99,19 +106,37 @@ function localize(lang = "en-US", key = "", ...formats) {
 	}
 }
 
-/**
- * Runs a command.
- * @param {string} command The command to run, including prefix.
- * @param {*} channel The channel the command was sent from.
- * @param {*} message The message representing the command.
- * @returns {undefined} Nothing is returned.
- */
-function handleCommand(command = "", channel = {}, message = {}) {
-	if (command.startsWith(prefix) && message._sender.nickname !== client.nickname) {
-		const unprefixedCmd = command.replace(prefix, "");
-		log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
+function cue_sendmessage(channel,message) {
+	channel_message = new Promise((resolve, reject) => {
+		channel.sendUserMessage(message, (sentMessage, error) => {
+			if (error) {
+				reject(error);
+			} else {
+				resolve(sentMessage);
+			}
+		});
+	 });
+}
 
-		let chData = {
+function is_valid_command(this_command) {
+	var is_valid_command = "true";
+	this_regexp = "^\\"+prefix+"[a-z]*"
+	if (this_command.match(new RegExp(this_regexp)) == null) {
+		is_valid_command="false";
+	  }
+	return is_valid_command;
+  }
+
+	/**
+	 * Runs a command.
+	 * @param {string} command The command to run, including prefix.
+	 * @param {*} channel The channel the command was sent from.
+	 * @param {*} message The message representing the command.
+	 * @returns {undefined} Nothing is returned.
+	 */
+
+function 	cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper) {
+	let chData = {
 			parsable: null,
 		};
 		if (channel.data) {
@@ -127,7 +152,6 @@ function handleCommand(command = "", channel = {}, message = {}) {
 			}
 		}
 
-		const settingsWrapper = settings.subredditWrapper(channelSub(channel));
 
 		try {
 			parser.parse(unprefixedCmd, {
@@ -168,6 +192,40 @@ function handleCommand(command = "", channel = {}, message = {}) {
 			safeFail(error);
 		}
 	}
+
+
+function handleCommand(command = "", channel = {}, message = {}) {
+	this_sub = channelSub(channel);
+	this_user = message._sender.nickname;
+	let this_mod_channel = channel
+	const settingsWrapper = settings.subredditWrapper(this_sub);
+	if (settingsWrapper.get("mod_only") == undefined) {
+		settingsWrapper.set("mod_only","false");
+		settingsWrapper.set("notauth_message","Bite Me u/{User}, only mods can use and abuse me. Allowed Commands are:\n{allowed_commands}");
+		cue_sendmessage(this_channel,localize("bot_welcome"))
+		}
+	if (settingsWrapper.get("allowed_bot_commands") == undefined) {
+		settingsWrapper.set("allowed_bot_commands","::");
+	  }
+	this_allowed_bot_commands = settingsWrapper.get("allowed_bot_commands")
+	if ( (is_valid_command(command) == "true") && message._sender.nickname !== client.nickname) {
+		const unprefixedCmd = command.replace(prefix, "");
+		if ((settingsWrapper.get("mod_only") == "false") || (settingsWrapper.get("moderators").includes("::"+this_user.toLowerCase()+"::")) || (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ) {
+			if (settingsWrapper.get("channel_logs") !== undefined) {
+				this_channel_url = settingsWrapper.get("channel_logs")
+		   pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
+			   cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
+			 });
+		 }
+		log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
+		cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
+	}
+	else {
+	 allowed_commands = settingsWrapper.get("allowed_bot_commands").replace(/::/g,", ").replace(/, $/g,"\n");
+	 this_message = "" + settingsWrapper.get("notauth_message").replace("{User}",this_user).replace("{allowed_commands}",allowed_commands)
+	 cue_sendmessage(channel,this_message)
+  }
+ }
 }
 
 const Sendbird = require("sendbird");
@@ -267,18 +325,7 @@ handler.onUserReceivedInvitation = (channel, inviter, invitees) => {
 	}
 };
 
-/**
- * Gets the subreddit from a channel.
- * @param {*} channel The channel to get the subreddit from.
-*/
-function channelSub(channel) {
-	if (channel.data) {
-		const data = JSON.parse(channel.data);
-		return data.subreddit ? data.subreddit.name : channel.url;
-	} else {
-		return channel.url;
-	}
-}
+
 
 handler.onUserJoined = (channel, user) => {
 	if (user.nickname === client.nickname) return;
