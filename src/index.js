@@ -16,8 +16,6 @@ const { SettingsManager, extension } = require(config.settingsManager);
 log.settings("passing off settings handling to the '%s' module", config.settingsManager);
 
 const settings = new SettingsManager(path.resolve("./settings" + extension));
-const user_stats = new SettingsManager(path.resolve("./user_stats" + extension));
-//settings.set("test","test1","test2")
 const locales = require("./locales.json");
 const format = require("string-format");
 const upsidedown = require("upsidedown");
@@ -217,6 +215,7 @@ function is_valid_command(this_command) {
 function handleCommand(command = "", channel = {}, message = {}) {
 	this_sub = channelSub(channel);
 	this_user = message._sender.nickname;
+	command = command.toLowerCase()
 	let this_mod_channel = channel
 	const settingsWrapper = settings.subredditWrapper(this_sub);
 	if (settingsWrapper.get("mod_only") == undefined) {

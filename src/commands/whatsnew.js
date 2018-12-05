@@ -16,6 +16,7 @@ module.exports = {
 		whats_new += "New command: setnotauthorised, sets the not authorised message\n"
 		whats_new += "New feature: user activity in your chatrooms\n"
 		whats_new += "New command: userreport, gives the statistics on a user\n"
+		whats_new += "New feature: forced all commands to go to lowercase, to ignore case sensitivty on input\n"
 		args.send(whats_new)
 	},
 	longDescription: "Displays what is new with the bot.",

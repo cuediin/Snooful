@@ -17,7 +17,6 @@ module.exports = {
 		}
 		this_report = "==============================\n"
 		this_report += "Report for "+this_user+"\n";
-		console.log(this_report)
 		this_report += "Total Number of Messages: "+msgs[this_user+":no_messages"]+"\n";
 		this_report += "Total Number of Empty Messages: "+msgs[this_user+":no_empty_messages"]+"\n";
 		this_report += "Total Number of Characters: "+msgs[this_user+":no_total_characters"]+"\n";
