@@ -12,7 +12,11 @@ const version = require("./../package.json").version;
 
 const path = require("path");
 
-const { SettingsManager, extension } = require(config.settingsManager);
+// Set up in a way where legacy settings managers work too
+const setMan = require(config.settingsManager);
+const SettingsManager = setMan.SettingsManager || setMan;
+const extension = setMan.extension || "";
+
 log.settings("passing off settings handling to the '%s' module", config.settingsManager);
 
 const settings = new SettingsManager(path.resolve("./settings" + extension));
@@ -72,6 +76,7 @@ reload();
  * @returns {string} The error message.
  */
 function safeFail(error) {
+	console.log(error)
 	const errMsg = error instanceof Error ? error.message : error;
 	log.main("an error occurred: %s", errMsg);
 	return errMsg;
@@ -167,7 +172,7 @@ function 	cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper) {
 				sb,
 				send: content => {
 					return new Promise((resolve, reject) => {
-						channel.sendUserMessage(content.toString(), (sentMessage, error) => {
+						channel.sendUserMessage(content.toString(), (error , sentMessage) => {
 							if (error) {
 								reject(error);
 							} else {
@@ -215,12 +220,11 @@ function is_valid_command(this_command) {
 function handleCommand(command = "", channel = {}, message = {}) {
 	this_sub = channelSub(channel);
 	this_user = message._sender.nickname;
-	command = command.toLowerCase()
 	let this_mod_channel = channel
 	const settingsWrapper = settings.subredditWrapper(this_sub);
 	if (settingsWrapper.get("mod_only") == undefined) {
 		settingsWrapper.set("mod_only","false");
-		settingsWrapper.set("notauth_message","Bite Me u/{User}, only mods can use and abuse me. Allowed Commands are:\n{allowed_commands}");
+		settingsWrapper.set("notauth_message","Bite Me u/{USER}, only mods can use and abuse me. Allowed Commands are:\n{allowed_commands}");
 		cue_sendmessage(this_channel,localize("bot_welcome"))
 		}
 	if (settingsWrapper.get("allowed_bot_commands") == undefined) {
@@ -228,21 +232,27 @@ function handleCommand(command = "", channel = {}, message = {}) {
 	  }
 	this_allowed_bot_commands = settingsWrapper.get("allowed_bot_commands")
 	if (message._sender.nickname !== client.nickname) {
+		if (command.startsWith(prefix)) {
+			this_regexp = "^\\"+prefix+"[a-zA-Z]+"
+			command = command.replace(/ .*$/,"").toLowerCase() + command.replace(new RegExp(this_regexp),"");
+	  	}
 	  if (is_valid_command(command) == "true") {
 	  	const unprefixedCmd = command.replace(prefix, "");
 	  	if ((settingsWrapper.get("mod_only") == "false") || (settingsWrapper.get("moderators").includes("::"+this_user.toLowerCase()+"::")) || (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ) {
-		  	if (settingsWrapper.get("channel_logs") !== undefined) {
+		    cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
+				if (settingsWrapper.get("channel_logs") !== undefined) {
 			  	this_channel_url = settingsWrapper.get("channel_logs")
+					/*
 		      pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
 			     cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
 			     });
+					 */
 		      }
 		    log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
-		    cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
 	      }
 	    else {
 	      allowed_commands = settingsWrapper.get("allowed_bot_commands").replace("::","").replace(/::/g,", ").replace(/, $/g,"\n");
-	      this_message = "" + settingsWrapper.get("notauth_message").replace("{User}",this_user).replace("{allowed_commands}",allowed_commands)
+	      this_message = "" + settingsWrapper.get("notauth_message").replace("{USER}",this_user).replace("{allowed_commands}",allowed_commands)
 	      cue_sendmessage(channel,this_message)
         }
       }
