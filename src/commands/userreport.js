@@ -37,7 +37,7 @@ module.exports = {
 			for (top_counter = 0; top_counter < top; top_counter++) {
         this_report += String(top_messages_users[top_counter]).replace(/:.*/,"") + ":" + msgs[top_messages_users[top_counter]] + "\n";
 			  }
-			this_report += "==============================\n"
+			this_report += "==============================\n";
 			this_report += "Report for Top "+top+" Empty Message Count\n";
 			if (top > top_empty_users.length) {
 				top = top_empty_users.length
@@ -45,7 +45,7 @@ module.exports = {
 			for (top_counter = 0; top_counter < top; top_counter++) {
         this_report += String(top_empty_users[top_counter]).replace(/:.*/,"") + ":" + msgs[top_empty_users[top_counter]] + "\n";
 			  }
-			this_report += "==============================\n"
+			this_report += "==============================\n";
 			this_report += "Report for Top "+top+" Character Count\n";
 			if (top > top_characters_users.length) {
 				top = top_characters_users.length
@@ -53,25 +53,38 @@ module.exports = {
 			for (top_counter = 0; top_counter < top; top_counter++) {
         this_report += String(top_characters_users[top_counter]).replace(/:.*/,"") + ":" + msgs[top_characters_users[top_counter]] + "\n";
 			  }
-			this_report += "==============================\n"
+			this_report += "==============================\n";
   		}
 		else {
 			this_user = args.user_report_this_user;
 			this_user = this_user.toLowerCase();
 			if (msgs[this_user+":no_messages"] == undefined) {
-				msgs[this_user+":no_messages"] = 0;
-				msgs[this_user+":no_empty_messages"] = 0;
-				msgs[this_user+":no_total_characters"] = 0;
-				args.settings.set("user_stats", msgs);
+				this_report = "==============================\n";
+				this_report += "User "+this_user+" not found\n";
+				this_report += "==============================\n";
+			  }
+			else {
+			  this_first_seen_datetime_string = "N/A"
+			  this_last_seen_datetime_string = "N/A"
+			  if (msgs[this_user+":first_seen"] != undefined) {
+			    this_datetime = new Date(msgs[this_user+":first_seen"])
+			    this_first_seen_datetime_string = this_datetime.getFullYear()+"/"+(this_datetime.getMonth()+1)+"/"+this_datetime.getDate()+" "+this_datetime.getHours()+":"+this_datetime.getMinutes()
+			    }
+			  if (msgs[this_user+":last_seen"] != undefined) {
+			    this_datetime = new Date(msgs[this_user+":last_seen"])
+			    this_last_seen_datetime_string = this_datetime.getFullYear()+"/"+(this_datetime.getMonth()+1)+"/"+this_datetime.getDate()+" "+this_datetime.getHours()+":"+this_datetime.getMinutes()
+			    }
+			  this_report = "==============================\n"
+			  this_report += "Report for "+this_user+"\n";
+			  this_report += "User first seen:  "+this_first_seen_datetime_string+"\n";
+			  this_report += "User last seen:  "+this_last_seen_datetime_string+"\n";
+			  this_report += "Total Number of Messages: "+msgs[this_user+":no_messages"]+"\n";
+			  this_report += "Total Number of Empty Messages: "+msgs[this_user+":no_empty_messages"]+"\n";
+			  this_report += "Total Number of Characters: "+msgs[this_user+":no_total_characters"]+"\n";
+			  this_report += "==============================\n";
+		    }
 			}
-			this_report = "==============================\n"
-			this_report += "Report for "+this_user+"\n";
-			this_report += "Total Number of Messages: "+msgs[this_user+":no_messages"]+"\n";
-			this_report += "Total Number of Empty Messages: "+msgs[this_user+":no_empty_messages"]+"\n";
-			this_report += "Total Number of Characters: "+msgs[this_user+":no_total_characters"]+"\n";
-			this_report += "==============================\n"
-		  }
-		args.send(this_report)
+		args.send(this_report);
 	},
 	name: "userreport",
 };

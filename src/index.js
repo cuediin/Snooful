@@ -19,7 +19,8 @@ const extension = setMan.extension || "";
 
 log.settings("passing off settings handling to the '%s' module", config.settingsManager);
 
-const settings = new SettingsManager(path.resolve("./settings" + extension));
+const settings_filename = '/home/chatbot/settings_' + config.environment + extension;
+const settings = new SettingsManager(settings_filename);
 const locales = require("./locales.json");
 const format = require("string-format");
 const upsidedown = require("upsidedown");
@@ -56,6 +57,7 @@ function channelSub(channel) {
  * The prefix required by commands to be considered by the bot.
  */
 const prefix = config.prefix;
+const this_bot_owner = config.bot_owner;
 
 const parser = require("@snooful/orangered-parser");
 const creq = require("clear-require");
@@ -189,7 +191,7 @@ function 	cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper) {
 		}
 	}
 
-function update_user_stats(this_user,this_sub,command) {
+function update_user_stats(this_user,this_sub,command,this_utc) {
 	user_report_this_user = this_user.toLowerCase();
 	const settingsWrapper = settings.subredditWrapper(this_sub);
 	const msgs = settingsWrapper.get("user_stats") || {};
@@ -197,7 +199,13 @@ function update_user_stats(this_user,this_sub,command) {
 		msgs[user_report_this_user+":no_messages"] = 0;
 		msgs[user_report_this_user+":no_empty_messages"] = 0;
 		msgs[user_report_this_user+":no_total_characters"] = 0;
+        msgs[user_report_this_user+":first_seen"] = this_utc;
+        msgs[user_report_this_user+":last_seen"] = this_utc;
 	}
+	if (msgs[user_report_this_user+":first_seen"] == undefined) {
+    msgs[user_report_this_user+":first_seen"] = this_utc;
+	}
+
 	if (command.length>0) {
 		msgs[user_report_this_user+":no_messages"]++;
 	  }
@@ -205,12 +213,13 @@ function update_user_stats(this_user,this_sub,command) {
 		msgs[user_report_this_user+":no_empty_messages"]++;
 		}
 	msgs[user_report_this_user+":no_total_characters"] += command.length;
+    msgs[user_report_this_user+":last_seen"] = this_utc;
 	settingsWrapper.set("user_stats", msgs);
   }
 
 function is_valid_command(this_command) {
 		var is_valid_command = "true";
-		this_regexp = "^\\"+prefix+"[a-z]+"
+		this_regexp = "^\\"+prefix+"[a-z0-9_-]+"
 		if (this_command.match(new RegExp(this_regexp)) == null) {
 			is_valid_command="false";
 		  }
@@ -220,34 +229,72 @@ function is_valid_command(this_command) {
 function handleCommand(command = "", channel = {}, message = {}) {
 	this_sub = channelSub(channel);
 	this_user = message._sender.nickname;
+	update_user_stats(this_user,this_sub,command,message['createdAt']);
 	let this_mod_channel = channel
 	const settingsWrapper = settings.subredditWrapper(this_sub);
 	if (settingsWrapper.get("mod_only") == undefined) {
 		settingsWrapper.set("mod_only","false");
 		settingsWrapper.set("notauth_message","Bite Me u/{USER}, only mods can use and abuse me. Allowed Commands are:\n{allowed_commands}");
-		cue_sendmessage(this_channel,localize("bot_welcome"))
-		}
-	if (settingsWrapper.get("allowed_bot_commands") == undefined) {
+		cue_sendmessage(this_mod_channel,localize("bot_welcome"))
 		settingsWrapper.set("allowed_bot_commands","::");
-	  }
+		settingsWrapper.set("moderators","");
+		settingsWrapper.set("channel_logs","");
+		settingsWrapper.set("emotes_allowall","false");
+		settingsWrapper.set("emotes",{});
+		}
+if (settingsWrapper.get("emotes_allowall") == undefined ) {
+settingsWrapper.set("emotes_allowall","false"); }
+
+		if (settingsWrapper.get("channel_logs") == undefined) {
+			settingsWrapper.set("channel_logs","");
+		  }
+			if (settingsWrapper.get("allowed_bot_commands") == undefined) {
+				settingsWrapper.set("allowed_bot_commands","::");
+			  }
+    if (settingsWrapper.get("emotes") == undefined) {
+				settingsWrapper.set("emotes",{});
+			  }
+		 if (settingsWrapper.get("moderators") == undefined ) {
+			  this_moderators = ""
+				}
 	this_allowed_bot_commands = settingsWrapper.get("allowed_bot_commands")
 	if (message._sender.nickname !== client.nickname) {
-		if (command.startsWith(prefix)) {
-			this_regexp = "^\\"+prefix+"[a-zA-Z]+"
-			command = command.replace(/ .*$/,"").toLowerCase() + command.replace(new RegExp(this_regexp),"");
+		 this_command=""
+				if (command.startsWith(prefix)) {
+			command_line = command
+			this_regexp = "^\\"+prefix+"[a-zA-Z0-9_-]+"
+			this_command = command_line.replace(prefix, "").replace(/ .*$/,"").toLowerCase();
+			command_line =  command_line.replace(/ .*$/,"").toLowerCase() + command_line.replace(new RegExp(this_regexp),"");
+			command = command_line
 	  	}
 	  if (is_valid_command(command) == "true") {
 	  	const unprefixedCmd = command.replace(prefix, "");
-	  	if ((settingsWrapper.get("mod_only") == "false") || (settingsWrapper.get("moderators").includes("::"+this_user.toLowerCase()+"::")) || (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ) {
-		    cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
-				if (settingsWrapper.get("channel_logs") !== undefined) {
+			this_moderators = settingsWrapper.get("moderators")
+      emotes = settingsWrapper.get("emotes")
+	  	if (
+				(settingsWrapper.get("mod_only") == "false") ||
+			 (this_user.toLowerCase() == this_bot_owner.toLowerCase()) ||
+			 (this_moderators.includes("::"+this_user.toLowerCase()+"::")) ||
+			  (this_allowed_bot_commands.includes("::"+unprefixedCmd.replace(/ .*/,"").toLowerCase()+"::")) ||
+				( (settingsWrapper.get("emotes_allowall") == "true" ) && (emotes[this_command] !== undefined) )
+			 ) {
+				if ( parser.getCommandRegistry().has(this_command) == true) {
+		      cue_command_wrap(channel,unprefixedCmd,message,settingsWrapper);
+			    }
+			  else if (emotes[this_command] !== undefined) {
+						this_emote = emotes[this_command].replace(/{USER}/g, message._sender.nickname)
+						cue_sendmessage(channel,this_emote)
+					  }
+					else {
+						cue_sendmessage(channel,"Command \""+this_command+"\" not found.")
+					  }
+				if ( (settingsWrapper.get("channel_logs") !== "") ) {
+					// && !(unprefixedCmd.includes(/^vote cast/))) {
 			  	this_channel_url = settingsWrapper.get("channel_logs")
-					/*
-		      pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
-			     cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
-			     });
-					 */
-		      }
+//		      pify(sb.GroupChannel.getChannel.bind(sb.GroupChannel), this_channel_url).then(this_channel => {
+//			     cue_sendmessage(this_channel,this_user+" sent the mod command \""+command+"\" from channel \""+channel['name']+"\"")
+//			     });
+				 }
 		    log.commands("recieved command '%s' from '%s' channel", unprefixedCmd, channel.name);
 	      }
 	    else {
@@ -256,9 +303,6 @@ function handleCommand(command = "", channel = {}, message = {}) {
 	      cue_sendmessage(channel,this_message)
         }
       }
-	else {
-		update_user_stats(this_user,this_sub,command);
-		}
 	}
 }
 

@@ -215,10 +215,15 @@
         "wikipedia_article_not_found": "That Wikipedia article could not be found.",
         "update_notauth_message_no_change": "That is already the not authorised message.",
         "update_notauth_message": "The not authorised message has been updated.",
-        "clear_notauth_message_no_change": "The not authorised message is already blank.",    
+        "clear_notauth_message_no_change": "The not authorised message is already blank.",
         "clear_notauth_message": "The not authorised message is blank.",
+        "update_modrules_message_no_change": "That is already the not authorised message.",
+        "update_modrules_message": "The not authorised message has been updated.",
+        "clear_modrules_message_no_change": "The not authorised message is already blank.",
+        "clear_modrules_message": "The not authorised message is blank.",
         "setmodonly_no_change": "no changes made.",
         "setmodonly_update": "moderator only commands option updates to",
+        "setmondonly_true_false": " valid parameters are true or false",
         "bot_welcome": "Welcome to using this bot. Please review the ?whatsnew commands to see about moderating with this bot and limiting access. Firstly, do ?updatemods then ?setmodonly true then assigned additional allowed comamnds using ?allowed_bot_commands add <CMD>"
 
     },

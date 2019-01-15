@@ -27,7 +27,7 @@ module.exports = {
 				if (modInfo[key]['created_utc']>0) {
 					this_utc = modInfo[key]['created_utc']
           this_datetime = new Date(this_utc*1000)
-          this_datetime_string = this_datetime.getFullYear()+"/"+(this_datetime.getMonth()+1)+"/"+this_datetime.getDate()+" "+this_datetime.getHours()+"::"+this_datetime.getMinutes()
+          this_datetime_string = this_datetime.getFullYear()+"/"+(this_datetime.getMonth()+1)+"/"+this_datetime.getDate()+" "+this_datetime.getHours()+":"+this_datetime.getMinutes()
 				  this_line = ""+this_datetime_string+"\n"+modInfo[key]['mod']+"::"+modInfo[key]['target_author']+"::"+modInfo[key]['action']+"\n";
 					if ( (my_args['events'] == "") || ( (my_args['events']>1) && (my_args['events']>this_counter) ) ) {
 					  this_counter++;
